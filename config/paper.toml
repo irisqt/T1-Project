@@ -1,0 +1,19 @@
+# Actual market prices, simulated capital. No Bitget keys needed.
+mode = "paper"
+symbols = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "XRPUSDT"]
+database = "data/trader.sqlite3"
+heartbeat = "data/heartbeat.json"
+initial_equity = 10000.0
+poll_seconds = 15.0
+strategy = "trend4h_20"
+breakout_bars = 24
+ema_period = 100
+atr_multiplier = 2.0
+risk_per_trade = 0.001
+portfolio_risk = 0.007
+min_leverage = 5
+max_leverage = 30
+max_margin_fraction = 0.30
+max_gross_exposure = 2.0
+fee_bps = 6.0
+slippage_bps = 4.0

@@ -1,0 +1,28 @@
+# ⚠️ 실거래 및 공격적 사냥을 위한 전용 설정 파일 (30만원 시드 맞춤형)
+mode = "live"
+symbols = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "XRPUSDT"]
+database = "data/live_trader.sqlite3"
+heartbeat = "data/live_heartbeat.json"
+initial_equity = 220.0  # 한화 약 30만원 기준 (USDT 환산)
+poll_seconds = 10.0     # 핑 주기를 짧게 가져가서 더 빨리 반응 (기존 15초 -> 10초)
+
+# 1. 공격적인 전략 설정
+strategy = "trend4h_20"
+breakout_bars = 24
+ema_period = 100
+atr_multiplier = 2.0  # 트레일링 스탑 여유
+
+# 2. 대표님 요청: 레버리지 10배 ~ 30배 고정
+min_leverage = 10
+max_leverage = 30
+
+# 3. 소액 시드(30만원) 맞춤형 "초공격적" 자금 관리
+# 기존 모의투자는 기관급(0.1%) 위험률이었지만, 소액 시드 펌핑을 위해 리스크를 폭발적으로 늘립니다.
+risk_per_trade = 0.05       # 한 큐에 계좌 자본의 5%를 손절 담보로 검 (매우 공격적)
+portfolio_risk = 0.15       # 여러 코인 동시 진입 시 최대 15% 리스크 허용
+max_margin_fraction = 0.80  # 가진 돈의 80%까지 증거금으로 땡겨 씀
+max_gross_exposure = 20.0   # 계좌 잔고의 최대 20배 명목 가치까지 굴림 (레버리지 적극 활용)
+
+# 4. 실거래 수수료 및 오차 반영
+fee_bps = 6.0
+slippage_bps = 4.0

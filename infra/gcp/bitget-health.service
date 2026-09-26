@@ -1,0 +1,12 @@
+[Unit]
+Description=Check Bitget worker heartbeat and restart hung process
+After=bitget-bot.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /opt/bitget/current/infra/gcp/runtime_ops.py health
+TimeoutStartSec=90
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes

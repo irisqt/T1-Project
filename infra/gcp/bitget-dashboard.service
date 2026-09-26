@@ -1,0 +1,27 @@
+[Unit]
+Description=Bitget read-only paper dashboard (loopback only)
+Wants=network-online.target
+After=network-online.target bitget-bot.service
+RequiresMountsFor=/var/lib/bitget
+
+[Service]
+Type=simple
+User=bitget
+Group=bitget
+WorkingDirectory=/opt/bitget/current
+Environment=PYTHONPATH=/opt/bitget/current/src
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/usr/bin/python3 /opt/bitget/current/scripts/dashboard.py
+Restart=always
+RestartSec=15
+UMask=0077
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+ReadWritePaths=/var/lib/bitget/data
+
+[Install]
+WantedBy=multi-user.target

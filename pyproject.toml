@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bitget-auto-coin-trading"
+version = "0.1.0"
+description = "Persistent Bitget market research and automated paper trading"
+requires-python = ">=3.12"
+dependencies = []
+
+[project.scripts]
+bitget-bot = "bitget_bot.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+addopts = "-ra"

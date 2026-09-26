@@ -1,0 +1,10 @@
+[Unit]
+Description=Check Bitget worker heartbeat once per minute
+
+[Timer]
+OnBootSec=4min
+OnUnitActiveSec=60s
+AccuracySec=5s
+
+[Install]
+WantedBy=timers.target

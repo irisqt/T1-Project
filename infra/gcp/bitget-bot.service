@@ -1,0 +1,40 @@
+[Unit]
+Description=Bitget paper trading worker
+Wants=network-online.target
+After=network-online.target
+RequiresMountsFor=/var/lib/bitget
+StartLimitIntervalSec=600
+StartLimitBurst=20
+
+[Service]
+Type=simple
+User=bitget
+Group=bitget
+WorkingDirectory=/opt/bitget/current
+Environment=PYTHONPATH=/opt/bitget/current/src
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStartPre=/usr/bin/mountpoint --quiet /var/lib/bitget
+ExecStart=/usr/bin/python3 /opt/bitget/current/scripts/run_live_bot.py
+Restart=always
+RestartSec=15
+TimeoutStopSec=40
+KillSignal=SIGTERM
+UMask=0077
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+ReadWritePaths=/var/lib/bitget
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=bitget-bot
+
+[Install]
+WantedBy=multi-user.target
