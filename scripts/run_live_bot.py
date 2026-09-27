@@ -140,6 +140,8 @@ def main():
             with open("data/live_state.json", "w", encoding="utf-8") as f:
                 import json
                 json.dump(state, f, ensure_ascii=False)
+            with open("data/heartbeat.json", "w", encoding="utf-8") as f:
+                json.dump({"timestamp": time.time()}, f)
 
             histories = {}
             for symbol in cfg.symbols:

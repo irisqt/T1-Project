@@ -392,14 +392,9 @@ HTML_PAGE = """
                     sysStatus.style.color = "var(--text-muted)";
                 }
                 
-                // Uptime based on actual started_ms
+                // Store started_ms globally for smooth 1-second ticking
                 if (data.started_ms) {
-                    let diff = Math.floor((Date.now() - data.started_ms) / 1000);
-                    if (diff < 0) diff = 0;
-                    let h = String(Math.floor(diff / 3600)).padStart(2, '0');
-                    let m = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
-                    let s = String(diff % 60).padStart(2, '0');
-                    document.getElementById('uptime-val').innerText = `${h}:${m}:${s}`;
+                    window.botStartedMs = data.started_ms;
                 }
                 
                 // Balances
@@ -465,9 +460,21 @@ HTML_PAGE = """
             }
         }
 
+        function updateUptimeUI() {
+            if (window.botStartedMs) {
+                let diff = Math.floor((Date.now() - window.botStartedMs) / 1000);
+                if (diff < 0) diff = 0;
+                let h = String(Math.floor(diff / 3600)).padStart(2, '0');
+                let m = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
+                let s = String(diff % 60).padStart(2, '0');
+                document.getElementById('uptime-val').innerText = `${h}:${m}:${s}`;
+            }
+        }
+
         window.onload = () => {
             fetchStatus();
             setInterval(fetchStatus, 5000);
+            setInterval(updateUptimeUI, 1000);
         };
     </script>
 </body>
