@@ -41,6 +41,7 @@ Updated: 2026-09-23 18:30 KST. Milestone: GCP continuous PAPER deployment verifi
 - 모든 V1 후보의 개발 구간 합산 모형 PnL 음수. 실거래 승격 근거 없음. 최종 20% holdout은 미평가.
 - **[2026-09-27 V2 전략 분석 결과]** `strategy_v2.py`의 신규 로직 백테스트 결과, `trend4h_20` (4시간 추세 돌파 20기간) 모듈이 모든 fold에서 우수한 우상향 성과(총 Net PnL +217.87)를 기록하여 최종 전략으로 선정됨 (`docs/ASTRA_ADVICE_LOG.md` 참고).
 - **[2026-09-27 V2 GCP 24시간 실가동 이식 완료]** `trend4h_20` 전략을 포함한 봇을 기존 `goldenpath-ai`에서 완전히 독립된 새로운 새 프로젝트 `t1-bitget-astra`로 이전하여 클린 배포 완료. 봇 정상 가동 중.
+- **[2026-09-27 T3 MTF 전략 백테스트 및 배포]** 4시간봉 거시추세와 5분봉 정밀타점을 결합한 `t3_trend4h_5m` 전략을 백테스트(총 PnL +21.96, PF 1.94) 후 실거래 환경(`aggressive_live.toml`)에 적용하고 GCP 서버에 펌웨어 업데이트 완료.
 - docs/RESEARCH_FINDINGS.md와 artifacts/research_summary_20260923.json 참조.
 - 운영 성공은 전략 수익성 또는 실거래 준비 완료가 아니다. 현재 설정은 paper만 허용한다.
 - 실제 주문 엔진의 durable intent, 부분 체결 보호, remote stop 대조, 재시작 주문 복구, demo 검증은 아직 미완성.
@@ -52,10 +53,12 @@ Updated: 2026-09-23 18:30 KST. Milestone: GCP continuous PAPER deployment verifi
 2. 기존 VM을 먼저 조회한다. 중복 VM/새 프로젝트를 만들지 않는다.
 3. `gcloud.cmd compute ssh bitget-paper-v1 --project=t1-bitget-astra --zone=asia-northeast3-a --tunnel-through-iap --quiet --command='sudo python3 /opt/bitget/current/infra/gcp/runtime_ops.py verify'`
 4. 원장/최근 이벤트/백업을 확인하고 현재 paper 운영을 유지한다. 실계좌 거래가 이루어졌다고 주장하지 않는다.
-5. V2 전략(`trend4h_20`)이 성공적인 PnL을 보였으므로, `engine.py` 등 실제 라이브 모듈에 `strategy_v2.py`를 통합(Integration)하고 `config`를 업데이트하는 작업을 진행한다. (완료 - GCP VM에 이식 후 `bitget-paper-v1` 데몬 구동 검증)
-6. 기존 V1에 맞춰진 테스트 코드(`tests/test_engine.py` 등)의 Mock을 V2 Policy 구조에 맞게 교체/업데이트하여 `pytest`가 모두 통과하도록 복원한다. (ASTRA 복귀 후 과제)
-7. 코드 변경 시 관련 테스트 → 전체 테스트 → bundle → 동일 VM 업데이트 → acceptance 검증 순서로 수행한다.
-8. 재배포 명령: `.\scripts\cloud_deploy.ps1 -ProjectId t1-bitget-astra -GcloudPath gcloud.cmd -Execute`.
+5. 대시보드 업데이트(`trade.goldenpath.kr`): SQLite 라이브 DB(`trader.sqlite3`)를 직접 조회하도록 `dashboard.py` 수정 완료. 포트폴리오(가용잔고, 총자산), 포지션 뷰, BTC/ETH/SOL/XRP 종목별 트레이딩뷰 차트 변경 기능 구현. **최종적으로 노안 배려용 폰트 확대(24px) 및 한글화, 80포트 리다이렉트를 통한 접속 편의성 개선 배포 완료.**
+6. V2 전략(`trend4h_20`)이 성공적인 PnL을 보였으므로, `engine.py` 등 실제 라이브 모듈에 `strategy_v2.py`를 통합(Integration)하고 `config`를 업데이트하는 작업을 진행한다. (완료)
+7. T3 MTF 전략 적용: `run_live_bot.py`를 5분봉 지원 및 `strategy_t3.py` 통합 구조로 변경 후 GCP 실서버 배포. (완료)
+8. 사용자 요청에 따른 리스크 검증: Full-Margin 올인 매매법의 위험성(15% 단일 거래 최대 손실)을 백테스트로 입증하고, 기존 Fixed Fractional Risk 모델의 방어력을 확인. (완료)
+9. 기존 V1에 맞춰진 테스트 코드(`tests/test_engine.py` 등)의 Mock을 V2/T3 Policy 구조에 맞게 교체/업데이트하여 `pytest`가 모두 통과하도록 복원한다. (현재 보류/이후 ASTRA 복귀 시 과제)
+10. 현재 상태: 사용자가 백테스트보다 **실시간 실전 모니터링**을 지켜보기 원함. 봇은 paper trading으로 T3 엔진 구동 중이며 대시보드로 실시간 관찰.
 
 ## 주요 파일
 - README.md: 사용자 실행/조회 안내

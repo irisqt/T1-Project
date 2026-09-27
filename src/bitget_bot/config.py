@@ -77,11 +77,13 @@ class Settings:
             raise ValueError("invalid rolling loss limits")
         if self.initial_equity <= 0 or not 1 <= self.fee_bps < 10000 or not 1 <= self.slippage_bps < 10000:
             raise ValueError("positive equity and realistic costs required")
-        if not 1 <= self.poll_seconds <= 60 or self.candle_interval_ms != 3600000:
-            raise ValueError("release supports 1H strategy and 1..60 second polling")
-        if self.strategy not in {"breakout", "momentum", "trend4h_20", "trend4h_40", "pullback4h", "range1h", "range4h"}:
+        if not 1 <= self.poll_seconds <= 60:
+            raise ValueError("release supports 1..60 second polling")
+        if self.candle_interval_ms not in {3600000, 300000}:
+            raise ValueError("release supports 1H and 5m strategy")
+        if self.strategy not in {"breakout", "momentum", "trend4h_20", "trend4h_40", "pullback4h", "range1h", "range4h", "t3_trend4h_5m"}:
             raise ValueError("unknown strategy")
-        if self.history_limit < max(self.ema_period + self.slope_bars + 2, self.breakout_bars + 2, self.atr_period + 2, self.momentum_bars + 2) or self.history_limit > 1000:
+        if self.history_limit < max(self.ema_period + self.slope_bars + 2, self.breakout_bars + 2, self.atr_period + 2, self.momentum_bars + 2) or self.history_limit > 10000:
             raise ValueError("insufficient or excessive history_limit")
         for key in ("breakout_bars", "ema_period", "slope_bars", "atr_period", "trailing_bars", "momentum_bars"):
             value = getattr(self, key)
