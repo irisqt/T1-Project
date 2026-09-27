@@ -14,7 +14,7 @@ sudo sed -i 's|ExecStart=.*|ExecStart=/usr/bin/python3 /opt/bitget/current/scrip
 sudo sed -i 's|ExecStart=.*|ExecStart=/usr/bin/python3 /opt/bitget/current/scripts/dashboard.py|' /usr/lib/systemd/system/bitget-dashboard.service
 
 # Caddy port update
-echo 'goldenpath.kr {
+echo ':80 {
     reverse_proxy localhost:8080
 }' | sudo tee /etc/caddy/Caddyfile
 
