@@ -1,220 +1,293 @@
 import os
 import json
 import sqlite3
-import random
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import urlparse
 
-# Premium GoldenPath AI UI - HTML Template
-HTML_PAGE = """
-<!DOCTYPE html>
+HTML_PAGE = """<!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GoldenPath AI - Quant Engine Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>GoldenPath AI - Quant Engine</title>
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
-    <!-- TradingView Widget -->
     <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
     <style>
         :root {
-            --bg-color: #f8fafc; /* Light gray background */
-            --panel-bg: #ffffff; /* White panels */
-            --accent: #EA580C; /* GoldenPath Orange */
-            --accent-glow: rgba(234, 88, 12, 0.2);
-            --text-main: #0f172a; /* Dark text */
-            --text-muted: #475569; /* Medium gray text */
-            --green: #059669; /* Darker green for visibility */
-            --red: #dc2626; /* Darker red */
-            --glass-border: rgba(0, 0, 0, 0.1);
+            --bg: #090a0f;
+            --bg-card: rgba(16, 18, 27, 0.6);
+            --bg-card-hover: rgba(25, 28, 41, 0.8);
+            --border: rgba(255, 255, 255, 0.08);
+            --border-highlight: rgba(255, 255, 255, 0.15);
+            --text-main: #ffffff;
+            --text-muted: #8b94a7;
+            --accent: #ff8a00; 
+            --accent-glow: rgba(255, 138, 0, 0.25);
+            --green: #00e676;
+            --green-glow: rgba(0, 230, 118, 0.3);
+            --red: #ff3b69;
+            --red-glow: rgba(255, 59, 105, 0.3);
+            --cyan: #00e5ff;
         }
         
-        * { box-sizing: border-box; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         
         body {
             margin: 0; padding: 0;
-            background-color: var(--bg-color);
+            background-color: var(--bg);
             background-image: 
-                radial-gradient(circle at 15% 50%, rgba(234, 88, 12, 0.08), transparent 25%),
-                radial-gradient(circle at 85% 30%, rgba(16, 185, 129, 0.05), transparent 25%);
+                radial-gradient(circle at 15% 0%, rgba(255, 138, 0, 0.08), transparent 40%),
+                radial-gradient(circle at 85% 100%, rgba(0, 229, 255, 0.05), transparent 40%);
             color: var(--text-main);
-            font-family: 'Outfit', sans-serif;
+            font-family: 'Outfit', -apple-system, sans-serif;
             height: 100vh; display: flex; flex-direction: column; overflow: hidden;
         }
 
-        /* Glassmorphism Navigation */
-        .navbar {
-            background: rgba(255, 255, 255, 0.9);
-            backdrop-filter: blur(12px);
-            border-bottom: 1px solid var(--glass-border);
-            padding: 15px 20px; display: flex; justify-content: space-between; align-items: center;
-            z-index: 10;
+        /* Animations */
+        @keyframes pulseGlow {
+            0% { box-shadow: 0 0 10px var(--green-glow); }
+            50% { box-shadow: 0 0 25px var(--green-glow); }
+            100% { box-shadow: 0 0 10px var(--green-glow); }
         }
-        
-        .brand {
-            display: flex; align-items: center; gap: 12px;
-        }
-        
-        .brand-icon {
-            background: linear-gradient(135deg, var(--accent), #ff8a00);
-            color: #fff; font-weight: 800; font-size: 14px;
-            padding: 8px 12px; border-radius: 8px;
-            box-shadow: 0 0 20px var(--accent-glow);
-        }
-        
-        .brand-title {
-            font-weight: 600; font-size: 18px; letter-spacing: 0.5px;
-        }
-        
-        /* Navigation Tabs */
-        .nav-tabs {
-            display: flex; gap: 10px; overflow-x: auto; white-space: nowrap; padding-bottom: 5px; margin-top: 10px;
-        }
-        
-        /* Hide scrollbar for tabs */
-        .nav-tabs::-webkit-scrollbar { display: none; }
-        .nav-tabs { -ms-overflow-style: none; scrollbar-width: none; }
-        
-        .nav-tab {
-            background: #f1f5f9;
-            border: 1px solid var(--glass-border);
-            padding: 10px 16px; border-radius: 8px;
-            color: var(--text-muted); font-size: 15px; font-weight: 500; cursor: pointer; transition: all 0.3s;
-        }
-        
-        .nav-tab.active {
-            background: rgba(234, 88, 12, 0.1);
-            border-color: var(--accent);
-            color: var(--accent); font-weight: 700; text-shadow: none;
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
-        /* Main Dashboard Container */
+        /* Top Bar */
+        .top-navbar {
+            padding: 15px 25px;
+            display: flex; justify-content: space-between; align-items: center;
+            background: rgba(9, 10, 15, 0.8);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            z-index: 20;
+        }
+        
+        .brand { display: flex; align-items: center; gap: 12px; }
+        .brand-icon {
+            background: linear-gradient(135deg, #ff8a00, #ff2a00);
+            color: #fff; font-weight: 800; font-size: 16px;
+            padding: 8px 12px; border-radius: 10px;
+            box-shadow: 0 0 20px var(--accent-glow);
+            letter-spacing: 1px;
+        }
+        .brand-title { font-weight: 700; font-size: 20px; letter-spacing: 0.5px; }
+
+        /* Navigation */
+        .nav-container {
+            padding: 15px 25px 0 25px;
+        }
+        .nav-tabs {
+            display: flex; gap: 12px;
+            overflow-x: auto; scrollbar-width: none;
+        }
+        .nav-tabs::-webkit-scrollbar { display: none; }
+        
+        .nav-tab {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 12px 20px; border-radius: 12px;
+            color: var(--text-muted); font-size: 15px; font-weight: 600;
+            cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            white-space: nowrap;
+        }
+        .nav-tab:hover { border-color: var(--border-highlight); color: var(--text-main); }
+        .nav-tab.active {
+            background: rgba(255, 138, 0, 0.1);
+            border-color: var(--accent);
+            color: var(--accent);
+            box-shadow: 0 0 20px var(--accent-glow);
+        }
+
+        /* Main Area */
         .dashboard-container {
-            flex: 1; padding: 20px; display: flex; flex-direction: column; overflow-y: auto; gap: 20px;
+            flex: 1; padding: 25px; display: flex; flex-direction: column; 
+            overflow-y: auto; overflow-x: hidden; scroll-behavior: smooth;
         }
 
         .panel {
-            background: var(--panel-bg);
-            border: 1px solid var(--glass-border);
-            border-radius: 16px;
-            padding: 20px;
-            display: none; /* Hidden by default for tab system */
-            flex-direction: column;
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.05);
-            min-height: 500px;
+            display: none; flex-direction: column; gap: 20px;
+            animation: fadeIn 0.4s ease-out forwards;
         }
+        .panel.active-panel { display: flex; }
+
+        /* Cards */
+        .card {
+            background: var(--bg-card);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s, border-color 0.3s;
+        }
+        .card:hover { border-color: var(--border-highlight); }
         
-        .panel.active-panel {
-            display: flex;
+        .card-header {
+            font-size: 14px; font-weight: 700; color: var(--text-muted);
+            text-transform: uppercase; letter-spacing: 1.5px;
+            margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;
         }
 
-        .panel-title {
-            font-size: 16px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;
-            margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--glass-border); padding-bottom: 10px;
+        /* Status Widget */
+        .status-hero {
+            display: flex; align-items: center; justify-content: center; flex-direction: column;
+            padding: 30px 20px; text-align: center;
+            background: linear-gradient(180deg, rgba(16, 18, 27, 0) 0%, rgba(16, 18, 27, 0.8) 100%);
+            border-radius: 16px; border: 1px solid var(--border);
+            position: relative; overflow: hidden;
+        }
+        .status-hero::before {
+            content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+            background: radial-gradient(circle, var(--green-glow) 0%, transparent 50%);
+            opacity: 0.1; pointer-events: none;
+        }
+        
+        .status-badge {
+            display: inline-flex; align-items: center; gap: 10px;
+            background: rgba(0, 230, 118, 0.1); border: 1px solid var(--green);
+            color: var(--green); padding: 8px 16px; border-radius: 30px;
+            font-weight: 800; font-size: 14px; letter-spacing: 1px;
+            box-shadow: 0 0 15px var(--green-glow);
+        }
+        .status-dot {
+            width: 10px; height: 10px; background: var(--green); border-radius: 50%;
+            animation: pulseGlow 2s infinite;
+        }
+        
+        .status-badge.stopped {
+            background: rgba(255, 59, 105, 0.1); border-color: var(--red); color: var(--red);
+            box-shadow: 0 0 15px var(--red-glow);
+        }
+        .status-badge.stopped .status-dot {
+            background: var(--red); animation: none; box-shadow: 0 0 10px var(--red);
         }
 
-        /* Status & Control Panel */
-        .status-box {
-            background: #f8fafc; border-radius: 12px; padding: 20px; margin-bottom: 20px;
-            border: 1px solid var(--glass-border); text-align: center;
+        /* Metrics Grid */
+        .metrics-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;
         }
-        
-        .status-indicator {
-            display: inline-block; width: 12px; height: 12px; border-radius: 50%;
-            margin-right: 10px; box-shadow: 0 0 12px currentColor;
+        .metric-box {
+            background: rgba(0,0,0,0.2); border: 1px solid var(--border);
+            padding: 20px; border-radius: 16px;
         }
-        
-        .status-text { font-family: 'JetBrains Mono', monospace; font-size: 24px; font-weight: 800; }
-        
-        .running { color: var(--green); }
-        .stopped { color: var(--red); }
-        
-        .metric {
-            display: flex; justify-content: space-between; padding: 15px 5px; border-bottom: 1px solid var(--glass-border);
-        }
-        .metric:last-child { border-bottom: none; }
-        .metric-label { color: var(--text-muted); font-size: 16px; }
-        .metric-value { font-family: 'JetBrains Mono', monospace; font-size: 18px; font-weight: 700; }
+        .metric-label { font-size: 13px; color: var(--text-muted); margin-bottom: 8px; font-weight: 600; text-transform: uppercase; }
+        .metric-value { font-family: 'JetBrains Mono', monospace; font-size: 28px; font-weight: 800; color: var(--text-main); }
+        .metric-value.highlight { color: var(--cyan); text-shadow: 0 0 15px rgba(0, 229, 255, 0.3); }
+        .metric-value.green { color: var(--green); text-shadow: 0 0 15px var(--green-glow); }
 
+        /* Kill Switch */
         .kill-switch {
-            margin-top: 30px; background: linear-gradient(135deg, #ef4444, #991b1b);
-            color: white; border: none; padding: 20px; border-radius: 12px;
-            font-size: 18px; font-weight: 800; text-transform: uppercase; cursor: pointer;
-            box-shadow: 0 4px 20px rgba(239, 68, 68, 0.4); transition: transform 0.2s, box-shadow 0.2s;
-            display: flex; justify-content: center; align-items: center; gap: 10px; width: 100%;
+            width: 100%; background: linear-gradient(135deg, #ff3b69, #b9002d);
+            color: white; border: none; padding: 20px; border-radius: 16px;
+            font-size: 18px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;
+            cursor: pointer; box-shadow: 0 10px 30px var(--red-glow);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex; justify-content: center; align-items: center; gap: 12px;
+            margin-top: 10px;
         }
-        .kill-switch:hover { transform: translateY(-2px); box-shadow: 0 6px 25px rgba(239, 68, 68, 0.6); }
+        .kill-switch:active { transform: scale(0.98); }
 
-        /* Chart Panel */
-        .chart-controls {
-            padding: 10px 0;
-            margin-bottom: 15px;
-            display: flex; gap: 10px;
-            overflow-x: auto;
+        /* Chart Controls */
+        .coin-selectors {
+            display: flex; gap: 10px; margin-bottom: 20px; overflow-x: auto; scrollbar-width: none;
+        }
+        .coin-selectors::-webkit-scrollbar { display: none; }
+        .coin-btn {
+            background: rgba(0,0,0,0.3); border: 1px solid var(--border);
+            color: var(--text-muted); padding: 10px 20px; border-radius: 12px;
+            font-weight: 600; font-size: 14px; cursor: pointer; transition: 0.3s;
+            white-space: nowrap;
+        }
+        .coin-btn.active {
+            background: rgba(0, 229, 255, 0.1); border-color: var(--cyan);
+            color: var(--cyan); box-shadow: 0 0 15px rgba(0, 229, 255, 0.2);
         }
 
-        .chart-controls button {
-            background: #f1f5f9;
-            border: 1px solid var(--glass-border);
-            color: var(--text-muted);
-            padding: 10px 18px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-family: 'Outfit', sans-serif;
-            font-size: 15px; font-weight: 600;
-            transition: all 0.2s;
+        .chart-wrapper {
+            height: 500px; border-radius: 16px; overflow: hidden;
+            border: 1px solid var(--border);
         }
+
+        /* Tables */
+        .data-table-container {
+            overflow-x: auto; border-radius: 12px; border: 1px solid var(--border);
+            background: rgba(0,0,0,0.2);
+        }
+        .data-table { width: 100%; border-collapse: collapse; min-width: 600px; }
+        .data-table th {
+            background: rgba(255,255,255,0.03); color: var(--text-muted);
+            font-size: 12px; font-weight: 600; text-transform: uppercase;
+            letter-spacing: 1px; padding: 15px; text-align: left; border-bottom: 1px solid var(--border);
+        }
+        .data-table td {
+            padding: 15px; font-family: 'JetBrains Mono', monospace; font-size: 14px;
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+        }
+        .data-table tr:last-child td { border-bottom: none; }
+        .data-table tr:hover { background: rgba(255,255,255,0.02); }
         
-        .chart-controls button.active {
-            background: rgba(234, 88, 12, 0.1);
-            color: var(--accent);
-            border-color: var(--accent);
+        .badge {
+            padding: 6px 10px; border-radius: 6px; font-size: 12px; font-weight: 700;
         }
+        .badge-long { background: rgba(0, 230, 118, 0.15); color: var(--green); border: 1px solid rgba(0, 230, 118, 0.3); }
+        .badge-short { background: rgba(255, 59, 105, 0.15); color: var(--red); border: 1px solid rgba(255, 59, 105, 0.3); }
 
-        .chart-container {
-            flex: 1; border-radius: 12px; overflow: hidden; border: 1px solid var(--glass-border); min-height: 400px;
+        /* AI Insight */
+        .ai-brain {
+            background: linear-gradient(145deg, rgba(16, 18, 27, 0.8), rgba(9, 10, 15, 0.9));
+            border: 1px solid rgba(255, 138, 0, 0.3);
+            border-radius: 20px; padding: 30px;
+            position: relative; overflow: hidden;
         }
-
-        /* History Panel */
-        .history-table { width: 100%; border-collapse: collapse; margin-top: 5px; }
-        .history-table th { color: var(--text-muted); font-size: 13px; text-align: left; padding-bottom: 12px; border-bottom: 1px solid var(--glass-border); }
-        .history-table td { padding: 12px 0; font-family: 'JetBrains Mono', monospace; font-size: 14px; border-bottom: 1px solid var(--glass-border); }
-        .buy { color: var(--green); }
-        .sell { color: var(--red); }
-        
-        .pos-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        .pos-table th { color: var(--text-muted); font-size: 13px; text-align: left; padding-bottom: 12px; border-bottom: 1px solid var(--glass-border); }
-        .pos-table td { padding: 12px 0; font-family: 'JetBrains Mono', monospace; font-size: 14px; border-bottom: 1px solid var(--glass-border); }
-
-        /* AI Insights Panel */
-        .insight-card {
-            background: rgba(234, 88, 12, 0.05); border: 1px solid rgba(234, 88, 12, 0.3);
-            border-radius: 12px; padding: 25px; margin-bottom: 20px; 
-            font-size: 24px; line-height: 1.8; color: var(--text-main); font-weight: 700;
+        .ai-brain::after {
+            content: ''; position: absolute; top: 0; right: 0; width: 150px; height: 150px;
+            background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
         }
+        .ai-brain p { font-size: 16px; line-height: 1.8; color: #d1d5db; margin: 15px 0; }
+        .ai-brain strong { color: var(--accent); font-weight: 700; }
 
-        /* Header wrapper for flex layout */
-        .header-wrapper {
-            background: rgba(255, 255, 255, 0.95);
-            border-bottom: 1px solid var(--glass-border);
-            padding-bottom: 10px;
+        /* Mobile Adjustments */
+        @media (max-width: 768px) {
+            .nav-container { padding: 0; }
+            .nav-tabs {
+                position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+                background: rgba(9, 10, 15, 0.95); backdrop-filter: blur(20px);
+                border-top: 1px solid var(--border); border-radius: 20px 20px 0 0;
+                padding: 15px 10px; padding-bottom: max(15px, env(safe-area-inset-bottom));
+                justify-content: space-around; gap: 5px;
+            }
+            .nav-tab {
+                flex: 1; text-align: center; padding: 10px 5px; font-size: 13px;
+                border: none; background: transparent; border-radius: 10px;
+            }
+            .nav-tab.active { background: rgba(255,255,255,0.05); box-shadow: none; border-bottom: 2px solid var(--accent); border-radius: 0; }
+            .dashboard-container { padding: 15px; padding-bottom: 100px; }
+            .metrics-grid { grid-template-columns: 1fr 1fr; }
+            .metric-value { font-size: 20px; }
+            .chart-wrapper { height: 400px; }
         }
     </style>
 </head>
 <body>
-    <div class="header-wrapper">
-        <div class="navbar">
-            <div class="brand">
-                <div class="brand-icon">GP</div>
-                <div class="brand-title">GoldenPath AI</div>
-            </div>
+    <div class="top-navbar">
+        <div class="brand">
+            <div class="brand-icon">GP</div>
+            <div class="brand-title">GoldenPath AI</div>
         </div>
-        <div class="nav-tabs" style="padding: 0 20px;">
-            <div class="nav-tab active" data-target="panel-status">엔진 상태 & 자산</div>
-            <div class="nav-tab" data-target="panel-chart">실시간 차트</div>
-            <div class="nav-tab" data-target="panel-history">포지션 & 매매기록</div>
-            <div class="nav-tab" data-target="panel-ai">AI 마켓 분석</div>
+        <div style="font-family:'JetBrains Mono',monospace; font-size: 14px; color:var(--text-muted); font-weight:700;">
+            v3.0.0-T3
+        </div>
+    </div>
+    
+    <div class="nav-container">
+        <div class="nav-tabs">
+            <div class="nav-tab active" data-target="panel-status">대시보드</div>
+            <div class="nav-tab" data-target="panel-chart">실시간 마켓</div>
+            <div class="nav-tab" data-target="panel-history">포지션/내역</div>
+            <div class="nav-tab" data-target="panel-ai">AI 분석</div>
         </div>
     </div>
 
@@ -222,128 +295,139 @@ HTML_PAGE = """
         
         <!-- PANEL 1: Status & Balance -->
         <div id="panel-status" class="panel active-panel">
-            <div class="panel-title">엔진 가동 상태 <span style="color:var(--green)" id="sys-status">LIVE</span></div>
-            
-            <div class="status-box">
-                <div id="status-val" class="status-text running">
-                    <span class="status-indicator running"></span>Connecting...
+            <div class="card status-hero">
+                <div id="status-badge" class="status-badge">
+                    <div class="status-dot"></div><span id="sys-status">엔진 스캔 중...</span>
+                </div>
+                <div style="margin-top:20px; font-size: 14px; color:var(--text-muted); font-weight:600; letter-spacing:1px">엔진 가동 시간</div>
+                <div id="uptime-val" style="font-family:'JetBrains Mono',monospace; font-size: 46px; font-weight:800; margin-top:5px; text-shadow: 0 0 20px rgba(255,255,255,0.2);">00:00:00</div>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric-box">
+                    <div class="metric-label">현재 가용 잔고</div>
+                    <div id="balance-val" class="metric-value green">$0.00</div>
+                </div>
+                <div class="metric-box">
+                    <div class="metric-label">총 자산 (Equity)</div>
+                    <div id="equity-val" class="metric-value">$0.00</div>
+                </div>
+                <div class="metric-box">
+                    <div class="metric-label">적용 알고리즘</div>
+                    <div class="metric-value highlight" style="font-size: 18px; font-family:'Outfit'">T3_MTF_5m</div>
+                </div>
+                <div class="metric-box">
+                    <div class="metric-label">최대 레버리지</div>
+                    <div class="metric-value" style="font-size: 22px">30x</div>
                 </div>
             </div>
             
-            <div style="flex:1;">
-                <div class="metric"><span class="metric-label">현재 가용 잔고</span><span id="balance-val" class="metric-value" style="color:var(--green)">$0.00</span></div>
-                <div class="metric"><span class="metric-label">총 자산 (Equity)</span><span id="equity-val" class="metric-value">$0.00</span></div>
-                <div class="metric"><span class="metric-label">적용 알고리즘</span><span class="metric-value" style="color:var(--accent)">T3_MTF_5m (이중 잣대 추세돌파)</span></div>
-                <div class="metric"><span class="metric-label">레버리지</span><span class="metric-value">최대 30x</span></div>
-                <div class="metric"><span class="metric-label">엔진 연속 가동 시간</span><span id="uptime-val" class="metric-value">00:00:00</span></div>
-            </div>
-            
             <button class="kill-switch" onclick="stopBot()">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path><line x1="12" y1="2" x2="12" y2="12"></line></svg>
-                긴급 킬 스위치 (강제 정지)
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path><line x1="12" y1="2" x2="12" y2="12"></line></svg>
+                긴급 킬 스위치 (강제 셧다운)
             </button>
         </div>
 
         <!-- PANEL 2: Chart -->
-        <div id="panel-chart" class="panel" style="padding: 15px;">
-            <div class="chart-controls">
-                <button class="coin-btn active" data-symbol="BINANCE:BTCUSDT">BTC (비트코인)</button>
-                <button class="coin-btn" data-symbol="BINANCE:ETHUSDT">ETH (이더리움)</button>
-                <button class="coin-btn" data-symbol="BINANCE:SOLUSDT">SOL (솔라나)</button>
-                <button class="coin-btn" data-symbol="BINANCE:XRPUSDT">XRP (리플)</button>
-            </div>
-            <div class="chart-container">
-                <div id="tv_chart" style="height: 100%; width: 100%;"></div>
+        <div id="panel-chart" class="panel">
+            <div class="card" style="padding: 20px;">
+                <div class="coin-selectors">
+                    <button class="coin-btn active" data-symbol="BINANCE:BTCUSDT">BTC/USDT</button>
+                    <button class="coin-btn" data-symbol="BINANCE:ETHUSDT">ETH/USDT</button>
+                    <button class="coin-btn" data-symbol="BINANCE:SOLUSDT">SOL/USDT</button>
+                    <button class="coin-btn" data-symbol="BINANCE:XRPUSDT">XRP/USDT</button>
+                </div>
+                <div class="chart-wrapper">
+                    <div id="tv_chart" style="height: 100%; width: 100%;"></div>
+                </div>
             </div>
         </div>
 
         <!-- PANEL 3: History & Positions -->
         <div id="panel-history" class="panel">
-            <div class="panel-title">현재 보유 포지션 (Active)</div>
-            <div style="overflow-x: auto; margin-bottom: 30px;">
-                <table class="pos-table" style="min-width: 400px;">
-                    <thead>
-                        <tr>
-                            <th>종목</th>
-                            <th>포지션</th>
-                            <th style="text-align:right">수량</th>
-                            <th style="text-align:right">진입가</th>
-                        </tr>
-                    </thead>
-                    <tbody id="positions-body">
-                        <tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding: 20px;">보유 중인 포지션이 없습니다.</td></tr>
-                    </tbody>
-                </table>
+            <div class="card" style="padding: 0; overflow: hidden;">
+                <div class="card-header" style="padding: 25px 25px 10px 25px; margin:0;">🚀 Active Positions</div>
+                <div class="data-table-container" style="border:none; border-radius:0;">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Symbol</th>
+                                <th>Side</th>
+                                <th style="text-align:right">Size</th>
+                                <th style="text-align:right">Entry Price</th>
+                            </tr>
+                        </thead>
+                        <tbody id="positions-body">
+                            <tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding: 30px;">포지션 대기 중...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
-            <div class="panel-title">엔진 실행 로그 (Event Log)</div>
-            <div style="flex: 1; overflow-y: auto; overflow-x: auto;">
-                <table class="history-table" style="min-width: 500px;">
-                    <thead>
-                        <tr>
-                            <th>시간</th>
-                            <th>이벤트</th>
-                            <th>종목</th>
-                            <th style="text-align:right">상세 내용</th>
-                        </tr>
-                    </thead>
-                    <tbody id="history-body">
-                        <tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding: 20px;">시장을 스캔 중입니다...</td></tr>
-                    </tbody>
-                </table>
+            <div class="card" style="padding: 0; overflow: hidden;">
+                <div class="card-header" style="padding: 25px 25px 10px 25px; margin:0;">📋 System Event Log</div>
+                <div class="data-table-container" style="border:none; border-radius:0;">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Event</th>
+                                <th>Symbol</th>
+                                <th style="text-align:right">Detail</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-body">
+                            <tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding: 30px;">로그 수집 중...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
         
         <!-- PANEL 4: AI Insights -->
         <div id="panel-ai" class="panel">
-            <div class="panel-title">AI 마켓 딥러닝 분석</div>
-            <div class="insight-card">
-                <strong style="color:var(--accent); display:block; margin-bottom: 10px;">[시스템 상태 브리핑]</strong> 
-                현재 4시간(4H) 봉 차트 기준으로 시장의 추세 모멘텀을 정밀 분석 중입니다. 
-                <br><br>
-                비트코인(BTC)을 포함한 주요 알트코인(ETH, SOL, XRP)의 변동성 지표가 알고리즘의 진입 허용 범위 내에 있습니다.
-                <br><br>
-                GoldenPath AI 퀀트 엔진은 켈리 공식(Kelly Criterion)에 기반한 리스크 관리 기법을 적용하여 <strong>안전하고 최적화된 매수/매도 타점</strong>을 실시간 24시간 스캔하고 있습니다. 조건이 충족되면 자동으로 주문이 실행됩니다.
+            <div class="ai-brain">
+                <div class="card-header" style="color:var(--accent);">GoldenPath Deep-Q Core</div>
+                <p>현재 <strong>4시간(4H) 멀티타임프레임(MTF)</strong> 스캔을 통해 거시적 추세를 판별하고, <strong>5분(5m) 프랙탈 돌파</strong> 조건에 부합하는 타점을 실시간으로 추적 중입니다.</p>
+                <p>시장 변동성(ATR)을 기반으로 진입 시나리오가 갱신되며, 공격적 <strong>켈리 배팅(최대 30x)</strong>과 엄격한 <strong>고정 비율 손절망(5% Risk)</strong>을 동시에 유지하여 생존력을 극대화하고 있습니다.</p>
+                <div style="margin-top: 30px; display:inline-block; padding:10px 20px; background:rgba(0,229,255,0.1); border:1px solid var(--cyan); border-radius:10px; color:var(--cyan); font-weight:700; font-size:14px; letter-spacing:1px;">
+                    STATUS: T3_MTF_5m ACTIVE 🟢
+                </div>
             </div>
         </div>
 
     </div>
 
     <script>
-        // Tab Switching Logic
+        // Tab System
         const tabs = document.querySelectorAll('.nav-tab');
         const panels = document.querySelectorAll('.panel');
         
         tabs.forEach(tab => {
             tab.addEventListener('click', () => {
-                // Remove active class from all tabs and panels
                 tabs.forEach(t => t.classList.remove('active'));
                 panels.forEach(p => p.classList.remove('active-panel'));
                 
-                // Add active class to clicked tab and corresponding panel
                 tab.classList.add('active');
-                const targetId = tab.getAttribute('data-target');
-                document.getElementById(targetId).classList.add('active-panel');
+                document.getElementById(tab.getAttribute('data-target')).classList.add('active-panel');
             });
         });
 
+        // TradingView
         let tvWidget = null;
-        
         function initChart(symbol) {
-            if(tvWidget !== null) {
-                document.getElementById('tv_chart').innerHTML = '';
-            }
+            if(tvWidget !== null) document.getElementById('tv_chart').innerHTML = '';
             tvWidget = new TradingView.widget({
                 "autosize": true,
                 "symbol": symbol,
                 "interval": "240",
                 "timezone": "Asia/Seoul",
-                "theme": "light",
+                "theme": "dark", // Changed to dark theme!
                 "style": "1",
                 "locale": "kr",
                 "enable_publishing": false,
-                "backgroundColor": "#ffffff",
-                "gridColor": "rgba(0, 0, 0, 0.05)",
+                "backgroundColor": "#090a0f",
+                "gridColor": "rgba(255, 255, 255, 0.05)",
                 "hide_top_toolbar": false,
                 "hide_legend": false,
                 "save_image": false,
@@ -363,41 +447,34 @@ HTML_PAGE = """
                 initChart(e.target.dataset.symbol);
             });
         });
-
-        // Init default chart
         initChart("BINANCE:BTCUSDT");
 
+        // API Fetch
         async function fetchStatus() {
             try {
                 const res = await fetch('/api/status');
                 const data = await res.json();
                 
-                const statusEl = document.getElementById('status-val');
+                const badge = document.getElementById('status-badge');
                 const sysStatus = document.getElementById('sys-status');
                 
                 if (data.status === "STARTING" || data.status === "RUNNING") {
-                    statusEl.className = "status-text running";
-                    statusEl.innerHTML = '<span class="status-indicator running" style="background:var(--green)"></span>엔진 정상 가동 중';
-                    sysStatus.innerText = data.mode ? data.mode.toUpperCase() : "LIVE";
-                    sysStatus.style.color = "var(--green)";
+                    badge.className = "status-badge";
+                    sysStatus.innerText = "엔진 정상 가동 중 (LIVE)";
                 } else if (data.status === "HALTED") {
-                    statusEl.className = "status-text stopped";
-                    statusEl.innerHTML = '<span class="status-indicator stopped" style="background:var(--red)"></span>엔진 강제 정지됨';
-                    sysStatus.innerText = "HALTED";
-                    sysStatus.style.color = "var(--red)";
+                    badge.className = "status-badge stopped";
+                    sysStatus.innerText = "킬 스위치 작동 (HALTED)";
                 } else {
-                    statusEl.className = "status-text stopped";
-                    statusEl.innerHTML = '<span class="status-indicator stopped" style="background:var(--text-muted)"></span>엔진 오프라인';
-                    sysStatus.innerText = "OFFLINE";
-                    sysStatus.style.color = "var(--text-muted)";
+                    badge.className = "status-badge stopped";
+                    badge.style.background = "rgba(139, 148, 167, 0.1)";
+                    badge.style.borderColor = "#8b94a7";
+                    badge.style.color = "#8b94a7";
+                    badge.style.boxShadow = "none";
+                    sysStatus.innerText = "엔진 오프라인";
                 }
                 
-                // Store started_ms globally for smooth 1-second ticking
-                if (data.started_ms) {
-                    window.botStartedMs = data.started_ms;
-                }
+                if (data.started_ms) window.botStartedMs = data.started_ms;
                 
-                // Balances
                 if (data.cash !== undefined) {
                     document.getElementById('balance-val').innerText = `$${parseFloat(data.cash).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
                 }
@@ -405,25 +482,25 @@ HTML_PAGE = """
                     document.getElementById('equity-val').innerText = `$${parseFloat(data.equity).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
                 }
                 
-                // Positions Update
+                // Positions
                 const posBody = document.getElementById('positions-body');
                 if (data.positions && Object.keys(data.positions).length > 0) {
                     posBody.innerHTML = '';
                     for (const [symbol, pos] of Object.entries(data.positions)) {
-                        let sideClass = pos.size > 0 ? 'buy' : 'sell';
-                        let sideText = pos.size > 0 ? '롱(LONG)' : '숏(SHORT)';
+                        let sideClass = pos.size > 0 ? 'badge-long' : 'badge-short';
+                        let sideText = pos.size > 0 ? 'LONG' : 'SHORT';
                         posBody.innerHTML += `<tr>
-                            <td style="font-weight:bold">${symbol.replace('USDT', '')}</td>
-                            <td class="${sideClass}">${sideText}</td>
-                            <td style="text-align:right">${Math.abs(pos.size)}</td>
-                            <td style="text-align:right">$${parseFloat(pos.entry_price).toLocaleString()}</td>
+                            <td style="font-weight:bold; color:var(--text-main);">${symbol.replace('USDT', '')}</td>
+                            <td><span class="badge ${sideClass}">${sideText}</span></td>
+                            <td style="text-align:right; color:var(--text-main);">${Math.abs(pos.size)}</td>
+                            <td style="text-align:right; color:var(--text-main);">$${parseFloat(pos.entry_price).toLocaleString()}</td>
                         </tr>`;
                     }
                 } else {
-                    posBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding: 20px;">보유 중인 포지션이 없습니다.</td></tr>`;
+                    posBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding: 30px;">현재 진입한 포지션이 없습니다.</td></tr>`;
                 }
 
-                // History/Events Update
+                // History
                 const tbody = document.getElementById('history-body');
                 if (data.events && data.events.length > 0) {
                     tbody.innerHTML = '';
@@ -437,18 +514,23 @@ HTML_PAGE = """
                         if (row.kind === "ORDER_FILLED") detailStr = `체결가: $${row.detail.price}`;
                         else if (row.kind === "SIGNAL") detailStr = `신호 감지: ${row.detail.signal}`;
                         else if (row.kind === "ERROR") detailStr = `<span style="color:var(--red)">${row.detail.error || '오류 발생'}</span>`;
-                        else detailStr = JSON.stringify(row.detail).substring(0, 30) + "...";
+                        else detailStr = JSON.stringify(row.detail).substring(0, 40) + "...";
+                        
+                        let badgeCol = "";
+                        if (row.kind.includes("ORDER")) badgeCol = `color:var(--green)`;
+                        else if (row.kind.includes("ERROR")) badgeCol = `color:var(--red)`;
+                        else badgeCol = `color:var(--cyan)`;
                         
                         tbody.innerHTML += `<tr>
-                            <td>${timeStr}</td>
-                            <td style="color:var(--accent)">${row.kind}</td>
-                            <td style="font-weight:bold">${row.symbol ? row.symbol.replace('USDT','') : 'SYS'}</td>
-                            <td style="text-align:right">${detailStr}</td>
+                            <td style="color:var(--text-muted)">${timeStr}</td>
+                            <td style="font-weight:700; ${badgeCol}">${row.kind}</td>
+                            <td style="color:var(--text-main)">${row.symbol ? row.symbol.replace('USDT','') : 'SYS'}</td>
+                            <td style="text-align:right; color:var(--text-main);">${detailStr}</td>
                         </tr>`;
                     });
                 }
             } catch (e) {
-                console.error("Status fetch error", e);
+                console.error(e);
             }
         }
         
@@ -473,7 +555,7 @@ HTML_PAGE = """
 
         window.onload = () => {
             fetchStatus();
-            setInterval(fetchStatus, 5000);
+            setInterval(fetchStatus, 3000);
             setInterval(updateUptimeUI, 1000);
         };
     </script>
@@ -501,7 +583,6 @@ class DashboardHandler(BaseHTTPRequestHandler):
             live_state_path = "data/live_state.json"
             db_path = "data/trader.sqlite3"
             
-            # Check if live state JSON exists (Live trading)
             if os.path.exists(live_state_path):
                 try:
                     with open(live_state_path, "r", encoding="utf-8") as f:
@@ -512,25 +593,20 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 except Exception as e:
                     data["error"] = f"JSON load error: {e}"
 
-            # Fallback to Paper Trading SQLite DB if no JSON or missing fields
             elif os.path.exists(db_path):
                 try:
-                    # open read-only
                     conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True, timeout=3)
                     cursor = conn.cursor()
                     
-                    # 1. Load Portfolio State
                     row = cursor.execute("SELECT payload FROM portfolio WHERE id=1").fetchone()
                     if row:
                         state = json.loads(row[0])
                         data.update(state)
                         if data.get("status") == "STARTING" and data.get("last_cycle_ms", 0) > 0:
                             data["status"] = "RUNNING"
-                        # Handle case where status doesn't match STARTING exactly
                         elif "status" in state and state["status"] not in ["HALTED", "STOPPED", "ERROR"] and data.get("status") == "OFFLINE":
                             data["status"] = "RUNNING"
                             
-                    # 2. Load Recent Events
                     events = cursor.execute("SELECT ts, kind, symbol, payload FROM events ORDER BY id DESC LIMIT 25").fetchall()
                     data["events"] = [
                         {"ts": t, "kind": k, "symbol": s, "detail": json.loads(p)}
@@ -560,4 +636,3 @@ if __name__ == "__main__":
     server = HTTPServer(('0.0.0.0', PORT), DashboardHandler)
     print(f"GoldenPath Dashboard running at http://localhost:{PORT}")
     server.serve_forever()
-
